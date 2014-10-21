@@ -1,3 +1,4 @@
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -23,46 +24,43 @@ public class GenomeFactory {
 		return population;
 	}
 
-	public static Set<HWPlayer> generateGiftedPopulation(int size, Callable<HWPlayer> factory, Player competeAgainst) throws Exception {
-		Set<HWPlayer> population = new HashSet<>(size);
-		while (population.size() < size) {
-			HWPlayer p1 = factory.call();
-			ConnectFourGameLogic g = new ConnectFourGameLogic(6, 7, p1, competeAgainst);
-			g.run();
-			Player winner = g.getWinner();
-
-			if (winner != null && winner.equals(p1))
-				population.add(p1);
-		}
-
-		return population;
-	}
-
 	public static void breedToPopulationSize(List<Phenotype> population, int desiredPopulationSize) throws Exception {
 		Random r = new Random();
+
+		List<Phenotype> breedingStock = new ArrayList<>();
+		for (Phenotype p : population)
+			for (int i = 0; i < p.getFitness() * 100; i++)
+				breedingStock.add(p);
+
 		while (population.size() < desiredPopulationSize)
-			population.add(new Phenotype(population.get(r.nextInt(population.size())).breedWith(population.get(r.nextInt(population.size())))));
+			population.add(new Phenotype(breedingStock.get(r.nextInt(breedingStock.size())).breedWith(breedingStock.get(r.nextInt(breedingStock.size())))));
 	}
 
 	public static void calculateFitness(List<Phenotype> population) throws Exception {
-		List<Callable<Integer>> tasks = new ArrayList<>();
+		List<Callable<Double>> tasks = new ArrayList<>();
 		for (Phenotype p : population)
-			tasks.add(() -> p.calculateFitness(2));
+			tasks.add(p::calculateFitness);
 
-		System.out.println("\tExecuting " + tasks.size() + " tasks");
 		long start = System.currentTimeMillis();
-		int totalFitness = 0, totalItems = 0, maxFitness = Integer.MIN_VALUE, minFitness = Integer.MAX_VALUE;
-		ExecutorService s = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-		List<Future<Integer>> futures = s.invokeAll(tasks);
+		ExecutorService s = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 2);
+		List<Future<Double>> futures = s.invokeAll(tasks);
 		s.shutdown();
-		for (Future<Integer> f : futures) {
-			int fitness = f.get();
-			totalFitness += fitness;
-			totalItems++;
-			maxFitness = Math.max(maxFitness, fitness);
-			minFitness = Math.min(minFitness, fitness);
-		}
+		for (Future<Double> f : futures) {}
 
-		System.out.println(String.format("Calculated %s total items in %s ms.\tavg: %s\tmin: %s\tmax: %s\t", totalItems, System.currentTimeMillis() - start, totalFitness / (double) totalItems, minFitness, maxFitness));
+		Generation g = new Generation(population);
+//		String filename = String.format("C:\\Development\\TCSS435\\HW2\\generations\\%s_%s_%s_%s_%s.ser", System.currentTimeMillis(), g.getTotalItems(), g.getAverageFitness(), g.getMinFitness(), g.getMaxFitness());
+//		g.save(filename);
+		System.out.println(String.format("\tCalculated %s total items in %s ms.\tavg: %s\tmin: %s\tmax: %s\t", g.getTotalItems(), System.currentTimeMillis() - start, g.getAverageFitness(), g.getMinFitness(), g.getMaxFitness()));
+	}
+
+	public static void crossover(List<Phenotype> population, double percentSurvivors) throws Exception {
+		int originalPopulationSize = population.size();
+		int remainingPopulation = (int) (population.size() * percentSurvivors);
+
+		Collections.sort(population, (o1, o2) -> (int) ((o2.getFitness() - o1.getFitness()) * 10000));
+		while (population.size() > remainingPopulation)
+			population.remove(remainingPopulation);
+
+		breedToPopulationSize(population, originalPopulationSize);
 	}
 }
