@@ -4,30 +4,23 @@ import java.util.stream.Collectors;
 
 public class TestSimulator {
     public static void main(String[] args) throws Exception {
-        for (int i = 0; i < 100; i++) {
-            ConnectFourGameLogic g = new ConnectFourGameLogic(6, 7, new HWPlayer(4), new HWPlayer(4));
-            g.run();
-            if(g.getWinner() == null)
-                System.out.println("Tie");
-            else System.out.println(g.getWinner());
-        }
-//        final int maxDepth = 4;
-//        final int seedPopulationSize = 10;
-//        final int populationSize = 10;
-//
-//        System.out.println("building base population");
-//        List<Phenotype> population = GenomeFactory.generateRandomPopulation(seedPopulationSize, () -> new HWPlayer(maxDepth))//, new MysteryPlayer(maxDepth))
-//                .stream()
-//                .map(Phenotype::new)
-//                .collect(Collectors.toList());
-//
-//        System.out.println("breeding to base population size");
-//        GenomeFactory.breedToPopulationSize(population, populationSize);
-//
-//        System.out.println("calculating fitness of population");
-//        GenomeFactory.calculateFitness(population);
-//
-//        System.out.println("Did it!");
+        final int maxDepth = 4;
+        final int seedPopulationSize = 100;
+        final int populationSize = 500;
+
+        System.out.println("building base population");
+        List<Phenotype> population = GenomeFactory.generateRandomPopulation(seedPopulationSize, () -> new HWPlayer(maxDepth))//, new MysteryPlayer(maxDepth))
+                .stream()
+                .map(Phenotype::new)
+                .collect(Collectors.toList());
+
+        System.out.println("breeding to base population size");
+        GenomeFactory.breedToPopulationSize(population, populationSize);
+
+        System.out.println("calculating fitness of population");
+        GenomeFactory.calculateFitness(population);
+
+        System.out.println("Did it!");
     }
 
     private static void fillPopulation(Collection<Player> population, int size) {
